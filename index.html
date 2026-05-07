@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f0e17" />
+  <meta name="description" content="Boyfriend Stress Relief — a cute, emotional, funny interactive game 💝" />
+  <title>Boyfriend Mode 💝</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════ LOADING SCREEN -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="loading-heart" id="loading-heart">💝</div>
+      <div class="loading-title">Boyfriend Mode</div>
+      <div class="loading-sub">preparing emotional damage system...</div>
+      <div class="loading-bar-wrap">
+        <div class="loading-bar-track">
+          <div class="loading-bar-fill" id="loading-bar-fill"></div>
+        </div>
+        <div class="loading-percent" id="loading-percent">0%</div>
+      </div>
+      <div class="loading-tip" id="loading-tip">tip: combo hits for extra drama</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ GAME CONTAINER -->
+  <div id="game-container" class="hidden dark-mode">
+
+    <!-- Background layers -->
+    <div id="game-bg">
+      <div class="bg-gradient"></div>
+      <canvas id="bg-canvas"></canvas>
+    </div>
+
+    <!-- Rain overlay -->
+    <div id="rain-overlay" class="hidden">
+      <canvas id="rain-canvas"></canvas>
+    </div>
+
+    <!-- ───── TOP UI ───── -->
+    <div id="top-ui">
+      <div class="meter-group" id="anger-group">
+        <div class="meter-label-row">
+          <span class="meter-icon">😤</span>
+          <span class="meter-name">RAGE</span>
+          <span class="meter-val" id="anger-val">0</span>
+        </div>
+        <div class="meter-track anger-track">
+          <div class="meter-fill anger-fill" id="anger-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="top-center">
+        <div class="game-logo">💝</div>
+        <div class="game-title-text">Boyfriend Mode</div>
+        <div class="phase-badge" id="phase-badge">Normal</div>
+      </div>
+
+      <div class="meter-group align-right" id="love-group">
+        <div class="meter-label-row justify-end">
+          <span class="meter-val" id="love-val">100</span>
+          <span class="meter-name">LOVE</span>
+          <span class="meter-icon">💖</span>
+        </div>
+        <div class="meter-track love-track">
+          <div class="meter-fill love-fill" id="love-fill" style="width:100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───── MOOD BAR ───── -->
+    <div id="mood-bar-row">
+      <span class="mood-emoji-left" id="mood-emoji">😊</span>
+      <div class="mood-track">
+        <div class="mood-fill" id="mood-fill" style="width:80%"></div>
+        <span class="mood-label-inner">MOOD</span>
+      </div>
+    </div>
+
+    <!-- ───── MAIN CANVAS ───── -->
+    <div id="canvas-wrap">
+      <canvas id="game-canvas"></canvas>
+
+      <!-- Dialogue bubble -->
+      <div id="dialogue-box" class="hidden">
+        <div class="dialogue-bubble">
+          <div class="dialogue-inner" id="dialogue-text"></div>
+        </div>
+        <div class="dialogue-tail"></div>
+      </div>
+
+      <!-- Combo display -->
+      <div id="combo-display" class="hidden">
+        <div class="combo-x">x<span id="combo-num">1</span></div>
+        <div class="combo-word">COMBO</div>
+        <div class="combo-sparkles">✨</div>
+      </div>
+
+      <!-- Floating emojis layer -->
+      <div id="float-layer" aria-hidden="true"></div>
+    </div>
+
+    <!-- ───── BOTTOM UI ───── -->
+    <div id="bottom-ui">
+      <div id="btn-row">
+        <button class="act-btn poke-btn" id="btn-poke" aria-label="Poke">
+          <span class="btn-emoji">👆</span>
+          <span class="btn-lbl">Poke</span>
+        </button>
+        <button class="act-btn slap-btn" id="btn-slap" aria-label="Slap">
+          <span class="btn-emoji">👋</span>
+          <span class="btn-lbl">Slap</span>
+        </button>
+        <button class="act-btn throw-btn" id="btn-throw" aria-label="Throw">
+          <span class="btn-emoji">🥄</span>
+          <span class="btn-lbl">Throw</span>
+        </button>
+        <button class="act-btn apologize-btn hidden" id="btn-sorry" aria-label="Apologize">
+          <span class="btn-emoji">🙏</span>
+          <span class="btn-lbl">Sorry</span>
+        </button>
+        <button class="act-btn hug-btn hidden" id="btn-hug" aria-label="Hug">
+          <span class="btn-emoji">🤗</span>
+          <span class="btn-lbl">Hug!</span>
+        </button>
+      </div>
+
+      <div id="stats-row">
+        <div class="stat-chip">
+          <span class="stat-icon">💥</span>
+          <span>Hits:</span>
+          <span class="stat-val" id="stat-hits">0</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-icon">⚡</span>
+          <span>Max Combo:</span>
+          <span class="stat-val" id="stat-combo">0</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-icon">⭐</span>
+          <span>Score:</span>
+          <span class="stat-val" id="stat-score">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───── SETTINGS ───── -->
+    <button id="settings-toggle" aria-label="Settings">⚙️</button>
+
+    <div id="settings-panel" class="hidden glass-panel">
+      <div class="settings-header">Settings</div>
+      <div class="setting-row">
+        <span>🎵 Music</span>
+        <button class="toggle-btn active" id="tog-music" data-target="music">ON</button>
+      </div>
+      <div class="setting-row">
+        <span>🔊 SFX</span>
+        <button class="toggle-btn active" id="tog-sfx" data-target="sfx">ON</button>
+      </div>
+      <div class="setting-row">
+        <span>🌙 Dark Mode</span>
+        <button class="toggle-btn active" id="tog-dark" data-target="dark">ON</button>
+      </div>
+      <div class="setting-row">
+        <span>✨ Particles</span>
+        <button class="toggle-btn active" id="tog-particles" data-target="particles">ON</button>
+      </div>
+      <div class="setting-row">
+        <button class="reset-btn" id="btn-reset">🔄 Reset Game</button>
+      </div>
+    </div>
+
+    <!-- ───── ACHIEVEMENT TOAST ───── -->
+    <div id="achievement-toast" class="hidden glass-panel">
+      <div class="ach-icon" id="ach-icon">🏆</div>
+      <div class="ach-text">
+        <div class="ach-title" id="ach-title">Achievement!</div>
+        <div class="ach-desc" id="ach-desc">You did something</div>
+      </div>
+    </div>
+
+    <!-- ───── SECRET ENDING ───── -->
+    <div id="secret-ending" class="hidden">
+      <div id="ending-bg"></div>
+      <div id="ending-content">
+        <div id="ending-hearts-layer" aria-hidden="true"></div>
+        <canvas id="ending-canvas"></canvas>
+        <div id="ending-text-block">
+          <div class="ending-line1">you can keep hitting me...</div>
+          <div class="ending-line2">but i will always love you 💝</div>
+          <div class="ending-msg" id="ending-msg"></div>
+        </div>
+        <button id="btn-play-again" class="play-again-btn">Play Again 🔄</button>
+      </div>
+    </div>
+
+  </div><!-- /game-container -->
+
+  <!-- Scripts loaded as modules -->
+  <script type="module" src="audio.js"></script>
+  <script type="module" src="character.js"></script>
+  <script type="module" src="effects.js"></script>
+  <script type="module" src="ui.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
