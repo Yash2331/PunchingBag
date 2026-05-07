@@ -174,21 +174,14 @@ function triggerAction(action) {
 //  GAME LOGIC
 // ══════════════════════════════════════════════════════════
 
-const THROWABLES = ['🥄','📚','🍳','🎱','💼','🧦','📱','🎮','🍕','🧃','📝','🎯'];
+const THROWABLES = ['🥄','📚','🍳','🎱','💼','🧦','📱','🎮','🍕','🧃','📝','🎯','👟','🪴','🧁'];
 
 function doHit(action, x, y) {
-  if (!GS.particles) {
-    // still react, just skip particles
-  }
-
   const now = Date.now();
 
   // Combo logic
-  if (now - GS.lastHitTime < GS.comboTimeout) {
-    GS.combo++;
-  } else {
-    GS.combo = 1;
-  }
+  if (now - GS.lastHitTime < GS.comboTimeout) GS.combo++;
+  else GS.combo = 1;
   GS.lastHitTime = now;
   if (GS.combo > GS.maxCombo) GS.maxCombo = GS.combo;
 
@@ -203,66 +196,83 @@ function doHit(action, x, y) {
   GS.love  = Math.max(0,   GS.love  - angerIncrease * 0.4);
   GS.totalHits++;
 
-  // Sound
-  if (action === 'poke')       sfxPoke();
-  else if (action === 'slap')  sfxSlap();
-  else if (action === 'throw') sfxThrow();
-  if (GS.combo >= 3) sfxCombo(Math.min(GS.combo, 5));
-
-  // Intensity for reactions / particles
+  // Intensity
   const intensity = Math.min(5, 1 + Math.floor(GS.combo / 4));
 
-  // Character react
-  const charAction = intensity >= 4 && !GS.dramaticFallTriggered && GS.totalHits > 15
-    ? (Math.random() < 0.18 ? 'dramatic' : action)
-    : action;
+  // Dramatic fall check (non-throw actions)
+  const canDramatic = intensity >= 4 && !GS.dramaticFallTriggered && GS.totalHits > 15;
+  const goDramatic  = canDramatic && Math.random() < 0.18;
 
-  if (charAction === 'dramatic') {
-    GS.dramaticFallTriggered = true;
-    sfxDramaticFall();
-    charReact('dramatic', intensity);
-    uiUnlockAchievement('dramatic_fall');
-    setTimeout(() => sfxCry(), 1200); // cry sound as he recovers
-    setTimeout(() => { GS.dramaticFallTriggered = false; }, 8000);
-  } else {
-    charReact(action, intensity);
-  }
-
-  // Effects
-  if (GS.particles) {
-    fxSpawnHit(x, y, intensity);
-    if (GS.combo >= 3) fxSpawnStar(x, y - 30, 4);
-    fxShake(Math.min(intensity * 2.5, 12), 280 + intensity * 50);
-  }
-
-  // Throw projectile emoji
   if (action === 'throw') {
-    _spawnProjectile(x, y);
-  }
+    // ── THROW: play whoosh now, impact fires when projectile arrives ──
+    sfxThrow();
+    if (GS.combo >= 3) sfxCombo(Math.min(GS.combo, 5));
 
-  // Float emoji above hit
-  const hitEmojis   = ['💥','⚡','✨','💫','🌟'];
-  const comboEmojis = ['🔥','💯','🌀','⭐'];
-  fxFloatEmoji(
-    x + (Math.random()*40-20),
-    y - 30,
-    GS.combo >= 5 ? comboEmojis[Math.floor(Math.random()*comboEmojis.length)]
-                  : hitEmojis[Math.floor(Math.random()*hitEmojis.length)]
-  );
+    // Character target position on canvas
+    const charHitX = canvasW / 2 + (Math.random() * 24 - 12);
+    const charHitY = canvasH * 0.38 + (Math.random() * canvasH * 0.14);
+
+    _spawnProjectile(charHitX, charHitY, () => {
+      // ← called when projectile visually arrives
+      sfxSlap(); // impact thud
+      if (goDramatic) {
+        GS.dramaticFallTriggered = true;
+        sfxDramaticFall();
+        charReact('dramatic', intensity);
+        uiUnlockAchievement('dramatic_fall');
+        setTimeout(() => sfxCry(), 1200);
+        setTimeout(() => { GS.dramaticFallTriggered = false; }, 8000);
+      } else {
+        charReact('throw', intensity);
+      }
+      if (GS.particles) {
+        fxSpawnHit(charHitX, charHitY, intensity);
+        if (GS.combo >= 3) fxSpawnStar(charHitX, charHitY - 30, 4);
+        fxShake(Math.min(intensity * 2.5, 12), 280 + intensity * 50);
+      }
+      fxFloatEmoji(charHitX + (Math.random()*30-15), charHitY - 25, '💥', { size: 2 });
+    });
+
+  } else {
+    // ── POKE / SLAP: immediate reaction ──
+    if (action === 'poke')  sfxPoke();
+    else                    sfxSlap();
+    if (GS.combo >= 3) sfxCombo(Math.min(GS.combo, 5));
+
+    if (goDramatic) {
+      GS.dramaticFallTriggered = true;
+      sfxDramaticFall();
+      charReact('dramatic', intensity);
+      uiUnlockAchievement('dramatic_fall');
+      setTimeout(() => sfxCry(), 1200);
+      setTimeout(() => { GS.dramaticFallTriggered = false; }, 8000);
+    } else {
+      charReact(action, intensity);
+    }
+
+    if (GS.particles) {
+      fxSpawnHit(x, y, intensity);
+      if (GS.combo >= 3) fxSpawnStar(x, y - 30, 4);
+      fxShake(Math.min(intensity * 2.5, 12), 280 + intensity * 50);
+    }
+
+    const hitEmojis   = ['💥','⚡','✨','💫','🌟'];
+    const comboEmojis = ['🔥','💯','🌀','⭐'];
+    fxFloatEmoji(
+      x + (Math.random()*40-20), y - 30,
+      GS.combo >= 5 ? comboEmojis[Math.floor(Math.random()*comboEmojis.length)]
+                    : hitEmojis[Math.floor(Math.random()*hitEmojis.length)]
+    );
+  }
 
   // Dialogue
-  const dlg = getDialogue({
-    phase:   GS.phase,
-    action,
-    combo:   GS.combo,
-    lowLove: GS.love < 25,
-  });
+  const dlg = getDialogue({ phase: GS.phase, action, combo: GS.combo, lowLove: GS.love < 25 });
   uiShowDialogue(dlg, 2200 + GS.combo * 80);
 
   // Unlock sorry button
   if (!GS.sorryUnlocked && GS.anger >= 45) {
     GS.sorryUnlocked = true;
-    setTimeout(() => uiShowDialogue('💡 Sorry button unlocked... hint hint', 2500), 600);
+    setTimeout(() => uiShowDialogue('💡 Sorry button unlock ho gaya… hint hint 🙏', 2800), 600);
   }
 
   // Phase changes
@@ -371,30 +381,57 @@ function _checkHitAchievements() {
   if (GS.totalHits === 100){ uiUnlockAchievement('hits_100');  sfxAchievement(); }
 }
 
-// ── Projectile animation (DOM) ────────────────────────────
+// ── Projectile animation (DOM) — fires onImpact callback when it arrives ──
 
-function _spawnProjectile(hitX, hitY) {
-  const emoji = THROWABLES[Math.floor(Math.random() * THROWABLES.length)];
-  const el  = document.createElement('div');
+function _spawnProjectile(targetX, targetY, onImpact) {
+  const emoji  = THROWABLES[Math.floor(Math.random() * THROWABLES.length)];
+  const el     = document.createElement('div');
   el.className = 'projectile';
   el.textContent = emoji;
 
-  const startX = Math.random() < 0.5 ? -50 : canvasW + 50;
-  const startY = canvasH * 0.6 + Math.random() * canvasH * 0.2;
-  const endX   = hitX - startX;
-  const endY   = hitY - startY;
-  const dur    = 0.35 + Math.random() * 0.15;
+  // Start from a random screen edge (left or right)
+  const fromLeft = Math.random() < 0.5;
+  const startX   = fromLeft ? -60 : canvasW + 60;
+  const startY   = canvasH * 0.25 + Math.random() * canvasH * 0.30;
+
+  const endX = targetX - startX;
+  const endY = targetY - startY;
+  const dur  = 0.32 + Math.random() * 0.14; // fast enough to feel snappy
 
   el.style.left = startX + 'px';
   el.style.top  = startY + 'px';
-  el.style.setProperty('--sx', '0px');
-  el.style.setProperty('--sy', '0px');
   el.style.setProperty('--ex', endX + 'px');
   el.style.setProperty('--ey', endY + 'px');
   el.style.setProperty('--fly-dur', dur + 's');
 
   canvasWrap.appendChild(el);
-  setTimeout(() => el.remove(), dur * 1000 + 100);
+
+  // On arrival: remove projectile, spawn impact burst, call callback
+  setTimeout(() => {
+    el.remove();
+    // DOM impact flash at the character position
+    _spawnImpactFlash(targetX, targetY, emoji);
+    if (onImpact) onImpact();
+  }, dur * 1000);
+}
+
+function _spawnImpactFlash(x, y, emoji) {
+  // Brief "splat" element that scales up then fades
+  const el = document.createElement('div');
+  el.style.cssText = `
+    position:absolute; left:${x}px; top:${y}px;
+    transform:translate(-50%,-50%) scale(0.2);
+    font-size:2.4rem; pointer-events:none; z-index:35;
+    transition: transform 0.12s ease-out, opacity 0.18s ease 0.12s;
+  `;
+  el.textContent = emoji;
+  canvasWrap.appendChild(el);
+  // Trigger scale-up in next frame
+  requestAnimationFrame(() => {
+    el.style.transform = 'translate(-50%,-50%) scale(1.6) rotate(20deg)';
+    el.style.opacity   = '0';
+  });
+  setTimeout(() => el.remove(), 400);
 }
 
 // ── Secret ending ─────────────────────────────────────────
